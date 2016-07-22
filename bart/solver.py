@@ -85,7 +85,7 @@ class BartProblem(object):
         """
         # Create linear program formulation of BART problem.
         b = np.hstack([src_sum(self.traveler_matrix),
-                       dst_sum(self.traveler_matrix)])
+                       dst_sum(self.traveler_matrix)]).astype(np.float)
 
         A_src_const = np.repeat(np.identity(self.num_stations),
                                 self.num_stations, axis=1)
@@ -97,6 +97,7 @@ class BartProblem(object):
 
         # Solve linear program and save important attributes.
         self.res = scipy.optimize.linprog(c, A_eq=A, b_eq=b)
+        print(self.res)
         self.cost_opt = self.res.fun
         self.cost_orig = np.sum(self.fare_matrix * self.traveler_matrix)
         self.ticket_matrix = self.res.x.reshape(self.traveler_matrix.shape)
@@ -111,10 +112,10 @@ class BartProblem(object):
         dst_riders = list(map(self.iter_dst, range(self.num_stations)))
         for src in range(self.num_stations):
             for dst in range(self.num_stations):
-                for _ in range(self.ticket_matrix[src, dst]):
+                for _ in range(int(self.ticket_matrix[src, dst])):
                     src_rider = next(src_riders[src])
                     dst_rider = next(dst_riders[dst])
-                    dst_rider['exit_ticket'] = src_rider['ticket']
+                    dst_rider['exit_id'] = src_rider['id']
 
     def discount_rate(self):
         """

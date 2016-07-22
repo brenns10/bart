@@ -15,7 +15,7 @@ app = flask.Flask(__name__)
 solver = BartProblem(FARES, STATIONS)
 tokens = {}
 
-TRAVEL_REQUIRED_ARGS = {'start', 'end', 'ticket'}
+TRAVEL_REQUIRED_ARGS = {'start', 'end', 'id'}
 
 
 class BadRequestError(Exception):
@@ -36,6 +36,17 @@ def handle_bad_request(error):
     response = flask.jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
+
+
+def get_template_args():
+    return {
+        'title': 'BART Solver Admin',
+    }
+
+
+@app.route('/')
+def index():
+    return flask.render_template('index.html', **get_template_args())
 
 
 @app.route('/api/v1/status', methods=['GET'])
@@ -73,6 +84,7 @@ def travel():
     src_idx = STATIONS.index(start)
     dst_idx = STATIONS.index(end)
     args['token'] = uuid.uuid4()
+    args['fare_orig'] = FARES[src_idx][dst_idx]
     solver.add_traveler(src_idx, dst_idx, args)
 
     tokens[args['token']] = 'processing'
@@ -80,6 +92,7 @@ def travel():
     return flask.jsonify(
         status="OK",
         token=args['token'],
+        fare_orig=args['fare_orig'],
     )
 
 
@@ -87,9 +100,10 @@ def travel():
 def calculate():
     global solver
     solver.solve()  # it's really that simple :P
-    print(solver.ticket_matrix)
+    discount = solver.discount_rate()
     for x in range(solver.num_stations):
         for passenger in solver.iter_dst(x):
+            passenger['fare_opt'] = passenger['fare_orig'] * discount
             tokens[passenger['token']] = passenger
     old_solver = solver
     solver = BartProblem(FARES, STATIONS)
@@ -97,7 +111,7 @@ def calculate():
         status="OK",
         cost_orig=old_solver.cost_orig,
         cost_opt=old_solver.cost_opt,
-        discount=old_solver.discount_rate(),
+        discount=discount,
     )
 
 
