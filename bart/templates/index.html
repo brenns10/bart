@@ -66,40 +66,33 @@
             </div>
         </div>
 
-        <div class="tap-pane fade" id="simulations">
-            <h1>Simulation</h1>
-            <div class="form-group">
-                <label>BART Simulation CSV</label>
-                <input type="file" id="sim-file" />
-            </div>
-            <div class="form-group">
-                <label>Start Date</label>
-                <input type="date" id="sim-start" />
-            </div>
-            <div class="form-group">
-                <label>End Date</label>
-                <input type="date" id="sim-end" />
-            </div>
-            <button class="btn btn-primary" onclick="bart_simulation.runSimulation()">Run!</button>
-
-        </div>
-    </div>
-    <div id="sim-loading-modal" class="modal fade" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
-        <div class="modal-content">
-        <div class="modal-header">
-            <h3>Loading...</h3>
-        </div>
-        <div class="modal-body">
-            <p>We're parsing and loading the CSV.  This will take a moment...</p>
-            <div class="progress">
-                <div class="progress-bar" role="progressbar" style="width:0%" id="sim-load-progress">
+        <div class="tab-pane fade" id="simulations">
+            <div class="panel panel-default">
+                <div class="panel-heading">Setup</div>
+                <div class="panel-body">
+                    <div class="form-group">
+                        <label>BART Simulation CSV</label>
+                        <input type="file" id="sim-file" />
+                    </div>
+                    <button class="btn btn-primary" onclick="bart_simulation.runSimulation()">Run!</button>
                 </div>
             </div>
-        </div>
-        <div class="modal-footer">
-        </div>
-        </div>
+            <div class="panel panel-default" id="sim-loading">
+                <div class="panel-heading">Load Data</div>
+                <div class="panel-body">
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width:0%" id="sim-load-progress">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">Results</div>
+                <div class="panel-body">
+                    <div id="sim-results"></div>
+                    <div id="sim-plot" style="width: 100%; height: 400px"></div>
+                </div>
+            </div>
         </div>
     </div>
 {% endblock %}

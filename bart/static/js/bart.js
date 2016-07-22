@@ -1,18 +1,18 @@
+var randomChoice = function (list) {
+    return list[Math.floor(Math.random()*list.length)];
+};
+var ENDPOINT_STATIONS = '/api/v1/stations';
+var ENDPOINT_TRAVEL = '/api/v1/travel';
+var ENDPOINT_RESULT = '/api/v1/result';
+var ENDPOINT_CALCULATE = '/api/v1/calculate';
+var stations = [];
+var travelers = [];
+
 var bart_manual = (function() {
 
     var NAMES = ["James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Elizabeth", "William", "Linda", "David", "Barbara", "Richard", "Susan", "Joseph", "Jessica", "Thomas", "Margaret", "Charles", "Sarah", "Christopher", "Karen", "Daniel", "Nancy", "Matthew", "Betty", "Anthony", "Dorothy", "Donald", "Lisa", "Mark", "Sandra", "Paul", "Ashley", "Steven", "Kimberly", "George", "Donna", "Kenneth", "Carol", "Andrew", "Michelle", "Joshua", "Emily", "Edward", "Helen", "Brian", "Amanda", "Kevin", "Melissa", "Ronald", "Deborah", "Timothy", "Stephanie", "Jason", "Laura", "Jeffrey", "Rebecca", "Ryan", "Sharon", "Gary", "Cynthia", "Jacob", "Kathleen", "Nicholas", "Shirley", "Eric", "Amy", "Stephen", "Anna", "Jonathan", "Angela", "Larry", "Ruth", "Scott", "Brenda", "Frank", "Pamela", "Justin", "Virginia", "Brandon", "Katherine", "Raymond", "Nicole", "Gregory", "Catherine", "Samuel", "Christine", "Benjamin", "Samantha", "Patrick", "Debra", "Jack", "Janet", "Alexander", "Carolyn", "Dennis", "Rachel", "Jerry", "Heather", "Tyler", "Maria", "Aaron", "Diane", "Henry", "Emma", "Douglas", "Julie", "Peter", "Joyce", "Jose", "Frances", "Adam", "Evelyn", "Zachary", "Joan", "Walter", "Christina", "Nathan", "Kelly", "Harold", "Martha", "Kyle", "Lauren", "Carl", "Victoria", "Arthur", "Judith", "Gerald", "Cheryl", "Roger", "Megan", "Keith", "Alice", "Jeremy", "Ann", "Lawrence", "Jean", "Terry", "Doris", "Sean", "Andrea", "Albert", "Marie", "Joe", "Kathryn", "Christian", "Jacqueline", "Austin", "Gloria", "Willie", "Teresa", "Jesse", "Hannah", "Ethan", "Sara", "Billy", "Janice", "Bruce", "Julia", "Bryan", "Olivia", "Ralph", "Grace", "Roy", "Rose", "Jordan", "Theresa", "Eugene", "Judy", "Wayne", "Beverly", "Louis", "Denise", "Dylan", "Marilyn", "Alan", "Amber", "Juan", "Danielle", "Noah", "Brittany", "Russell", "Madison", "Harry", "Diana", "Randy", "Jane", "Philip", "Lori", "Vincent", "Mildred", "Gabriel", "Tiffany", "Bobby", "Natalie", "Johnny", "Abigail", "Howard", "Kathy"];
     var INITIALS = ["A.", "B.", "C.", "D.", "E.", "F.", "G.", "H.", "I.", "J.", "K.", "L.", "M.", "N.", "O.", "P.", "Q.", "R.", "S.", "T.", "U.", "V.", "W.", "X.", "Y.", "Z."];
 
-    var ENDPOINT_STATIONS = '/api/v1/stations';
-    var ENDPOINT_TRAVEL = '/api/v1/travel';
-    var ENDPOINT_RESULT = '/api/v1/result';
-    var ENDPOINT_CALCULATE = '/api/v1/calculate';
-    var stations = [];
-    var travelers = [];
-
-    var randomChoice = function (list) {
-        return list[Math.floor(Math.random()*list.length)];
-    };
 
 
     /**
@@ -192,6 +192,58 @@ var bart_manual = (function() {
 
 var bart_simulation = (function () {
     var events = [];
+    var currentHour = 0;
+    var fareVolumes = [];
+    var fareSavings = [];
+    var fareDiscounts = [];
+
+    var stations = {
+        "12TH": "12th St/Oakland",
+        "19TH": "19th St/Oakland",
+        "16TH": "16th St Mission",
+        "24TH": "24th St Mission",
+        "ASHB": "Ashby",
+        "BALB": "Balboa Park",
+        "BAYF": "Bay Fair",
+        "CAST": "Castro Valley",
+        "CIVC": "Civic Center/UN Plaza",
+        "COLS": "Coliseum",
+        "COLM": "Colma",
+        "CONC": "Concord",
+        "DALY": "Daly City",
+        "DBRK": "Downtown Berkeley",
+        "DUBL": "Dublin/Pleasanton",
+        "DELN": "El Cerrito del Norte",
+        "PLZA": "El Cerrito Plaza",
+        "EMBR": "Embarcadero",
+        "FRMT": "Fremont",
+        "FTVL": "Fruitvale",
+        "GLEN": "Glen Park",
+        "HAYW": "Hayward",
+        "LAFY": "Lafayette",
+        "LAKE": "Lake Merritt",
+        "MCAR": "MacArthur",
+        "MLBR": "Millbrae",
+        "MONT": "Montgomery",
+        "NBRK": "North Berkeley",
+        "NCON": "North Concord/Martinez",
+        "OAKL": "OAK Airport",
+        "ORIN": "Orinda",
+        "PITT": "Pittsburg/Bay Point",
+        "PHIL": "Pleasant Hill/Contra Costa",
+        "POWL": "Powell",
+        "RICH": "Richmond",
+        "ROCK": "Rockridge",
+        "SBRN": "San Bruno",
+        "SFIA": "SFO Airport",
+        "SANL": "San Leandro",
+        "SHAY": "South Hayward",
+        "SSAN": "South San Francisco",
+        "UCTY": "Union City",
+        "WCRK": "Walnut Creek",
+        "WDUB": "West Dublin/Pleasanton",
+        "WOAK": "West Oakland",
+    };
 
     var parseBigFileByLines = function(file, progress, callback, onComplete) {
         // Related: http://stackoverflow.com/questions/14438187/javascript-filereader-parsing-long-file-in-chunks
@@ -232,22 +284,92 @@ var bart_simulation = (function () {
         readBlock(offset, chunkSize, file);
     }
 
+    var updateAfterSlice = function(data) {
+        fareDiscounts.push([currentHour, Number(data["discount"])]);
+        fareSavings.push([currentHour, Number(data["cost_orig"]) - Number(data["cost_opt"])]);
+        console.log($.plot($("#sim-plot"),[fareDiscounts], {
+            yaxis: {
+                max: 1,
+                min: 0,
+            },
+            xaxis: {
+                min: 0,
+                max: 24,
+            }
+        }));
+        console.log(fareDiscounts);
+        currentHour += 1;
+        if (currentHour < 24) {
+            handleHour();
+        }
+    }
+
+    var calculate = function() {
+        console.log("calculate");
+        $("#sim-results").html(
+            "<p>All travelers for this hour loaded, calculating...</p>"
+        );
+        $.ajax({
+            type: 'GET',
+            url: ENDPOINT_CALCULATE,
+            dataType: 'json',
+        }).done(updateAfterSlice);
+    };
+
+    var eventsInHour = function(hour) {
+        var list = [];
+        events.forEach(function(val, i) {
+            if (val.hour == hour) {
+                list.push(val);
+            }
+        });
+        return list;
+    }
+
+
+    var handleHour = function () {
+        console.log("Handle hour " + currentHour);
+        var events = eventsInHour(currentHour);
+        var remaining = events.length;
+        console.log("Handling " + remaining + " events");
+        $("#sim-results").html(
+            "<p>Sending travelers to the server...</p>"
+        );
+        events.forEach(function(event) {
+            $.ajax({
+                type: 'POST',
+                url: ENDPOINT_TRAVEL,
+                data: JSON.stringify({
+                    start: stations[event.start],
+                    end: stations[event.end],
+                    id: 'does not matter',
+                    count: event.count,
+                }),
+                contentType: 'application/json',
+                dataType: 'json',
+            }).done(function(data) {
+                remaining -= 1;
+                console.log("remaining: " + remaining);
+                if (remaining == 0) {
+                    calculate();
+                }
+            });
+        });
+    }
     var runSimulation = function (e) {
         var file = $("#sim-file").prop("files")[0];
-        var start = new Date($("#sim-start").val());
-        var end = new Date($("#sim-end").val());
-        var list = [];
-        $("#sim-loading-modal").modal('show');
         parseBigFileByLines(file, $("#sim-load-progress")[0], function (line) {
             var fields = line.split(/,/);
-            var date = new Date(fields[0]);
-            if (date < start || date > end) {
-                return;
-            }
-            list.push(fields);
+            events.push({
+                date: new Date(fields[0]),
+                hour: Number(fields[1]),
+                start: fields[2],
+                end: fields[3],
+                count: Number(fields[4]),
+            });
         }, function () {
-            $("#sim-loading-modal").modal('hide');
-            alert(list.length);
+            currentHour=0;
+            handleHour();
         });
     }
 

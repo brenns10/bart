@@ -85,7 +85,9 @@ def travel():
     dst_idx = STATIONS.index(end)
     args['token'] = uuid.uuid4()
     args['fare_orig'] = FARES[src_idx][dst_idx]
-    solver.add_traveler(src_idx, dst_idx, args)
+    count = args.get('count', 1)
+    for _ in range(count):
+        solver.add_traveler(src_idx, dst_idx, args)
 
     tokens[args['token']] = 'processing'
 
