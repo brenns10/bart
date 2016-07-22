@@ -193,9 +193,10 @@ var bart_manual = (function() {
 var bart_simulation = (function () {
     var events = [];
     var currentHour = 0;
-    var fareVolumes = [];
     var fareSavings = [];
     var fareDiscounts = [];
+    var fareOriginal = [];
+    var fareOptimal = [];
 
     var stations = {
         "12TH": "12th St/Oakland",
@@ -287,9 +288,29 @@ var bart_simulation = (function () {
     var updateAfterSlice = function(data) {
         fareDiscounts.push([currentHour, Number(data["discount"])]);
         fareSavings.push([currentHour, Number(data["cost_orig"]) - Number(data["cost_opt"])]);
-        console.log($.plot($("#sim-plot"),[fareDiscounts], {
+        fareOptimal.push([currentHour, Number(data["cost_opt"])])
+        fareOriginal.push([currentHour, Number(data["cost_orig"])])
+        console.log($.plot($("#sim-fraction"),[fareDiscounts], {
             yaxis: {
                 max: 1,
+                min: 0,
+            },
+            xaxis: {
+                min: 0,
+                max: 24,
+            }
+        }));
+        console.log($.plot($("#sim-savings"),[fareSavings], {
+            yaxis: {
+                min: 0,
+            },
+            xaxis: {
+                min: 0,
+                max: 24,
+            }
+        }));
+        console.log($.plot($("#sim-costs"),[fareOriginal, fareOptimal], {
+            yaxis: {
                 min: 0,
             },
             xaxis: {
@@ -307,7 +328,7 @@ var bart_simulation = (function () {
     var calculate = function() {
         console.log("calculate");
         $("#sim-results").html(
-            "<p>All travelers for this hour loaded, calculating...</p>"
+            "<p>All travelers for hour " + currentHour + " loaded, calculating...</p>"
         );
         $.ajax({
             type: 'GET',
@@ -333,7 +354,7 @@ var bart_simulation = (function () {
         var remaining = events.length;
         console.log("Handling " + remaining + " events");
         $("#sim-results").html(
-            "<p>Sending travelers to the server...</p>"
+            "<p>Sending travelers for hour " + currentHour + " to the server...</p>"
         );
         events.forEach(function(event) {
             $.ajax({
