@@ -14,51 +14,81 @@ var bart = (function() {
         return list[Math.floor(Math.random()*list.length)];
     };
 
-    var updateStations = function() {
+
+    /**
+       Updates the start and end boxes to contain the correct station listings.
+     */
+    var updateStationChoices = function() {
+        var start = $("#travel-start");
+        var end = $("#travel-end");
+        start.find('option').remove().end();
+        end.find('option').remove().end();
+        console.log(start);
+        console.log(end);
+        $(stations).each(function(i, v) {
+            start.append($("<option>", {value: v, html: v}));
+            end.append($("<option>", {value: v, html: v}));
+        });
+    }
+
+    /**
+       Downloads the BART station listing from the API endpoint into the
+       `stations` variable.
+     */
+    var downloadStations = function(callback) {
         $.getJSON(ENDPOINT_STATIONS, function (data) {
             stations = data.stations;
-            var start = $("#travel-start");
-            var end = $("#travel-end");
-            start.find('option').remove().end();
-            end.find('option').remove().end();
-            console.log(start);
-            console.log(end);
-            $(stations).each(function(i, v) {
-                start.append($("<option>", {value: v, html: v}));
-                end.append($("<option>", {value: v, html: v}));
-            });
+            if (callback != null) {callback();}
         });
     };
 
+    /**
+       Download stations and set them in the boxes.
+    */
+    var updateStations = function () {
+        downloadStations(updateStationChoices);
+    }
+
+    /**
+       Sets a random name in the manual entry box.
+     */
     var updateName = function() {
         $("#travel-name")[0].value = randomChoice(NAMES) + ' ' + randomChoice(INITIALS);
     };
 
+    /**
+       Return HTML as a string for a given traveler object.
+     */
     var renderTraveler = function(traveler) {
         return "<tr>" +
             "<td>" + traveler.name + "</td>" +
             "<td>" + traveler.start + "</td>" +
             "<td>" + traveler.end + "</td>" +
             "<td><code>" + traveler.uuid + "</code></td>" +
-            "<td>" + traveler.status + "(" + traveler.fare_opt + "/" + traveler.fare_orig + ")" + "</td>" +
+            "<td>" + traveler.status + "(" +
+            Number(traveler.fare_opt).toFixed(2) + "/" + Number(traveler.fare_orig).toFixed(2) +
+            ")" + "</td>" +
             "</tr>";
     };
 
-    var checkTraveler = function(traveler) {
-        $.getJSON(ENDPOINT_RESULT, function(data){
-
-        });
-    };
-
+    /**
+       Remove all entries from the traveler table.
+     */
     var clearTravelerTable = function() {
         $("#traveler-list").find("tr").remove();
-    }
+    };
 
+    /**
+       Remove all travelers from the traveler list and traveler table.
+     */
     var clearTravelers = function() {
         clearTravelerTable();
         travelers = [];
-    }
+    };
 
+    /**
+       Check each traveler's status and refresh the table when done.
+     */
     var updateTravelers = function() {
         clearTravelerTable();
 
@@ -72,6 +102,12 @@ var bart = (function() {
                     v.fare_opt = data.fare_opt;
                 }
 
+                // This is a horrible hack because I only have a function that
+                // renders a whole table instead of updating a single row. It
+                // waits until every traveler is updated and then re-fills the
+                // table. I should work on a way to refresh the table without
+                // deleting everything and re-filling it. I'm sure this is a
+                // solved problem in JS-world.
                 remainingTravelers -= 1;
                 if (remainingTravelers == 0) {
                     $(travelers).each(function (i, v) {
@@ -82,6 +118,10 @@ var bart = (function() {
         });
     };
 
+    /**
+       Take the given info, create a traveler object, and add it to the table
+       and list of travelers.
+     */
     var addTraveler = function (name, start, end, uuid, fare_orig) {
         var traveler = {
             name: name,
@@ -96,6 +136,10 @@ var bart = (function() {
         $("#traveler-list").append(renderTraveler(traveler));
     };
 
+    /**
+       POST the form data to the travel endpoint, and on success add the
+       returned traveler to the table.
+     */
     var sendTravel = function() {
         var start = $("#travel-start")[0].value;
         var end = $("#travel-end")[0].value;
@@ -116,6 +160,9 @@ var bart = (function() {
         });
     };
 
+    /**
+       Execute the batch calculate endpoint.
+     */
     var calculate = function() {
         $.getJSON(ENDPOINT_CALCULATE, function (data) {
             $("#computation-results").html(
