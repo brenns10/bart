@@ -3,8 +3,9 @@
 Solver for the underlying Integer Linear Program of the BART problem.
 """
 
+import itertools
+
 import numpy as np
-import scipy.optimize
 
 
 def row_sum(A):
@@ -68,43 +69,74 @@ class BartProblem(object):
         self.traveler_matrix[src_idx, dst_idx] += 1
 
     def iter_dst(self, dst):
+        """
+        Iterate over all traveler data objects going to dst.
+        """
         for src in range(self.num_stations):
             yield from self.travelers.get((src, dst), [])
 
     def iter_src(self, src):
+        """
+        Iterate over all traveler data objects going from src.
+        """
         for dst in range(self.num_stations):
             yield from self.travelers.get((src, dst), [])
 
     def iter_travelers(self):
+        """
+        Iterate over all traveler data objects in this problem.
+        """
         for dst in range(self.num_stations):
             yield from self.iter_dst(dst)
+
+    def _greedy_iter(self, tickets):
+        """
+        Do a single iteration of the greedy algorithm for solving the problem.
+
+        Essentially, each iteration chooses two (src, dst) pairs that have
+        tickets purchased in our current solution.  If the fare for pairing
+        up the opposite sources and destinations would be cheaper, it swaps as
+        many tickets as possible.  The greedy solution should work here because
+        this was a linear programming problem, and so it's convex, and so this
+        wil
+        """
+        for (src1, dst1), (src2, dst2) in itertools.combinations(zip(*np.nonzero(tickets)), 2):
+            if src1 == src2 or dst1 == dst2:
+                continue
+
+            orig_fare = self.fare_matrix[src1, dst1] + self.fare_matrix[src2, dst2]
+            new_fare = self.fare_matrix[src1, dst2] + self.fare_matrix[src2, dst1]
+            if new_fare < orig_fare:
+                amount_to_swap = min(tickets[src1, dst1], tickets[src2, dst2])
+                tickets[src1, dst1] -= amount_to_swap
+                tickets[src2, dst2] -= amount_to_swap
+                tickets[src1, dst2] += amount_to_swap
+                tickets[src2, dst1] += amount_to_swap
+                return (orig_fare - new_fare) * amount_to_swap, tickets
+        return 0, tickets
+
+    def greedy_solve(self):
+        """
+        Runs greedy iterations until a solution is reached.
+        """
+        tickets = self.traveler_matrix.copy()
+        fare_reduction = 9001  # over 9000
+        it = 0
+        while fare_reduction > 0:
+            fare_reduction, tickets = self._greedy_iter(tickets)
+            it += 1
+            print('greedy iter {} reduced fare by {}'.format(it, fare_reduction))
+        self.ticket_matrix = tickets
+
 
     def solve(self):
         """
         Solve the problem.
         """
-        # Create linear program formulation of BART problem.
-        b = np.hstack([src_sum(self.traveler_matrix),
-                       dst_sum(self.traveler_matrix)]).astype(np.float)
-
-        A_src_const = np.repeat(np.identity(self.num_stations),
-                                self.num_stations, axis=1)
-        A_dst_const = np.hstack(
-            [np.identity(self.num_stations) for _ in range(self.num_stations)])
-        A = np.vstack([A_src_const, A_dst_const])
-
-        c = self.fare_matrix.reshape(self.num_stations ** 2)
-
-        # Solve linear program and save important attributes.
-        self.res = scipy.optimize.linprog(c, A_eq=A, b_eq=b)
-        print(self.res)
-        self.cost_opt = self.res.fun
+        self.greedy_solve()
+        self.res = True
+        self.cost_opt = np.sum(self.fare_matrix * self.ticket_matrix)
         self.cost_orig = np.sum(self.fare_matrix * self.traveler_matrix)
-        self.ticket_matrix = self.res.x.reshape(self.traveler_matrix.shape)
-
-        # It's unimodular so this should be true :P
-        assert np.all(np.equal(np.mod(self.ticket_matrix, 1), 0))
-        self.ticket_matrix = self.ticket_matrix.astype(np.int32)
 
         # Assign exit tickets to riders. It's not as bad as the triple nested
         # loop makes it look.
