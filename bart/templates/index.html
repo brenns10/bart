@@ -1,66 +1,73 @@
 {% extends "layout.html" %}
 {% block body %}
-    <h1>BART Admin</h1>
+    <div class="tab-content">
+        <div class="tab-pane fade active in" id="manual">
+            <h1>Manual Testing</h1>
+            <div class="panel panel-default">
+                <div class="panel-heading">Add Traveler</div>
+                <div class="panel-body">
+                    <p>
+                        Add a travel entry to the solver:
+                    </p>
+                    <div class="form-group">
+                        <label>Start</label>
+                        <select class="form-control" id="travel-start"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>End</label>
+                        <select class="form-control" id="travel-end"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Name/ID</label>
+                        <input class="form-control" type="text" id="travel-name" />
+                    </div>
+                    <button type="button"  class="btn btn-primary" onclick="bart.sendTravel()">Travel!</button>
+                </div>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">Travelers &nbsp;&nbsp;
+                    <button type="button" class="btn btn-info btn-xs" onclick="bart.updateTravelers()">
+                        <i class="fa fa-refresh" aria-hidden="true"></i> Refresh
+                    </button>
+                    <button type="button" class="btn btn-danger btn-xs pull-right" onclick="bart.clearTravelers()">
+                        <i class="fa fa-trash" aria-hidden="true"></i> Clear
+                    </button>
+                </div>
+                <div class="panel-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th>UUID</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="traveler-list">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">Computation
+                    <button type="button" class="btn btn-success btn-xs pull-right" onclick="bart.calculate()">
+                        <i class="fa fa-play-circle" aria-hidden="true"></i> Calculate!
+                    </button>
+                </div>
+                <div class="panel-body" id="computation-results">
+                    <p>
+                        When you're ready, click Calculate to run the ticket swapping
+                        operation. Results will be displayed here.
+                    </p>
+                </div>
+            </div>
+        </div>
 
-    <div class="panel panel-default">
-        <div class="panel-heading">Add Traveler</div>
-        <div class="panel-body">
-            <p>
-                Add a travel entry to the solver:
-            </p>
-            <div class="form-group">
-                <label>Start</label>
-                <select class="form-control" id="travel-start"></select>
-            </div>
-            <div class="form-group">
-                <label>End</label>
-                <select class="form-control" id="travel-end"></select>
-            </div>
-            <div class="form-group">
-                <label>Name/ID</label>
-                <input class="form-control" type="text" id="travel-name" />
-            </div>
-            <button type="button"  class="btn btn-primary" onclick="bart.sendTravel()">Travel!</button>
-        </div>
-    </div>
-    <div class="panel panel-default">
-        <div class="panel-heading">Travelers &nbsp;&nbsp;
-            <button type="button" class="btn btn-info btn-xs" onclick="bart.updateTravelers()">
-                <i class="fa fa-refresh" aria-hidden="true"></i> Refresh
-            </button>
-            <button type="button" class="btn btn-danger btn-xs pull-right" onclick="bart.clearTravelers()">
-                <i class="fa fa-trash" aria-hidden="true"></i> Clear
-            </button>
-        </div>
-        <div class="panel-body">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Start</th>
-                            <th>End</th>
-                            <th>UUID</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="traveler-list">
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    <div class="panel panel-default">
-        <div class="panel-heading">Computation
-            <button type="button" class="btn btn-success btn-xs pull-right" onclick="bart.calculate()">
-                <i class="fa fa-play-circle" aria-hidden="true"></i> Calculate!
-            </button>
-        </div>
-        <div class="panel-body" id="computation-results">
-            <p>
-                When you're ready, click Calculate to run the ticket swapping
-                operation. Results will be displayed here.
-            </p>
+        <div class="tap-pane fade" id="simulations">
+            <h1>Simulation</h1>
         </div>
     </div>
 {% endblock %}
