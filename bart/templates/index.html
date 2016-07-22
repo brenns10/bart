@@ -21,15 +21,15 @@
                         <label>Name/ID</label>
                         <input class="form-control" type="text" id="travel-name" />
                     </div>
-                    <button type="button"  class="btn btn-primary" onclick="bart.sendTravel()">Travel!</button>
+                    <button type="button"  class="btn btn-primary" onclick="bart_manual.sendTravel()">Travel!</button>
                 </div>
             </div>
             <div class="panel panel-default">
                 <div class="panel-heading">Travelers &nbsp;&nbsp;
-                    <button type="button" class="btn btn-info btn-xs" onclick="bart.updateTravelers()">
+                    <button type="button" class="btn btn-info btn-xs" onclick="bart_manual.updateTravelers()">
                         <i class="fa fa-refresh" aria-hidden="true"></i> Refresh
                     </button>
-                    <button type="button" class="btn btn-danger btn-xs pull-right" onclick="bart.clearTravelers()">
+                    <button type="button" class="btn btn-danger btn-xs pull-right" onclick="bart_manual.clearTravelers()">
                         <i class="fa fa-trash" aria-hidden="true"></i> Clear
                     </button>
                 </div>
@@ -53,7 +53,7 @@
             </div>
             <div class="panel panel-default">
                 <div class="panel-heading">Computation
-                    <button type="button" class="btn btn-success btn-xs pull-right" onclick="bart.calculate()">
+                    <button type="button" class="btn btn-success btn-xs pull-right" onclick="bart_manual.calculate()">
                         <i class="fa fa-play-circle" aria-hidden="true"></i> Calculate!
                     </button>
                 </div>
@@ -68,6 +68,38 @@
 
         <div class="tap-pane fade" id="simulations">
             <h1>Simulation</h1>
+            <div class="form-group">
+                <label>BART Simulation CSV</label>
+                <input type="file" id="sim-file" />
+            </div>
+            <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" id="sim-start" />
+            </div>
+            <div class="form-group">
+                <label>End Date</label>
+                <input type="date" id="sim-end" />
+            </div>
+            <button class="btn btn-primary" onclick="bart_simulation.runSimulation()">Run!</button>
+
+        </div>
+    </div>
+    <div id="sim-loading-modal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h3>Loading...</h3>
+        </div>
+        <div class="modal-body">
+            <p>We're parsing and loading the CSV.  This will take a moment...</p>
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" style="width:0%" id="sim-load-progress">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+        </div>
+        </div>
         </div>
     </div>
 {% endblock %}

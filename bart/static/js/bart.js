@@ -1,4 +1,4 @@
-var bart = (function() {
+var bart_manual = (function() {
 
     var NAMES = ["James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Elizabeth", "William", "Linda", "David", "Barbara", "Richard", "Susan", "Joseph", "Jessica", "Thomas", "Margaret", "Charles", "Sarah", "Christopher", "Karen", "Daniel", "Nancy", "Matthew", "Betty", "Anthony", "Dorothy", "Donald", "Lisa", "Mark", "Sandra", "Paul", "Ashley", "Steven", "Kimberly", "George", "Donna", "Kenneth", "Carol", "Andrew", "Michelle", "Joshua", "Emily", "Edward", "Helen", "Brian", "Amanda", "Kevin", "Melissa", "Ronald", "Deborah", "Timothy", "Stephanie", "Jason", "Laura", "Jeffrey", "Rebecca", "Ryan", "Sharon", "Gary", "Cynthia", "Jacob", "Kathleen", "Nicholas", "Shirley", "Eric", "Amy", "Stephen", "Anna", "Jonathan", "Angela", "Larry", "Ruth", "Scott", "Brenda", "Frank", "Pamela", "Justin", "Virginia", "Brandon", "Katherine", "Raymond", "Nicole", "Gregory", "Catherine", "Samuel", "Christine", "Benjamin", "Samantha", "Patrick", "Debra", "Jack", "Janet", "Alexander", "Carolyn", "Dennis", "Rachel", "Jerry", "Heather", "Tyler", "Maria", "Aaron", "Diane", "Henry", "Emma", "Douglas", "Julie", "Peter", "Joyce", "Jose", "Frances", "Adam", "Evelyn", "Zachary", "Joan", "Walter", "Christina", "Nathan", "Kelly", "Harold", "Martha", "Kyle", "Lauren", "Carl", "Victoria", "Arthur", "Judith", "Gerald", "Cheryl", "Roger", "Megan", "Keith", "Alice", "Jeremy", "Ann", "Lawrence", "Jean", "Terry", "Doris", "Sean", "Andrea", "Albert", "Marie", "Joe", "Kathryn", "Christian", "Jacqueline", "Austin", "Gloria", "Willie", "Teresa", "Jesse", "Hannah", "Ethan", "Sara", "Billy", "Janice", "Bruce", "Julia", "Bryan", "Olivia", "Ralph", "Grace", "Roy", "Rose", "Jordan", "Theresa", "Eugene", "Judy", "Wayne", "Beverly", "Louis", "Denise", "Dylan", "Marilyn", "Alan", "Amber", "Juan", "Danielle", "Noah", "Brittany", "Russell", "Madison", "Harry", "Diana", "Randy", "Jane", "Philip", "Lori", "Vincent", "Mildred", "Gabriel", "Tiffany", "Bobby", "Natalie", "Johnny", "Abigail", "Howard", "Kathy"];
     var INITIALS = ["A.", "B.", "C.", "D.", "E.", "F.", "G.", "H.", "I.", "J.", "K.", "L.", "M.", "N.", "O.", "P.", "Q.", "R.", "S.", "T.", "U.", "V.", "W.", "X.", "Y.", "Z."];
@@ -187,5 +187,72 @@ var bart = (function() {
         updateTravelers: updateTravelers,
         clearTravelers: clearTravelers,
         calculate: calculate,
+    };
+}());
+
+var bart_simulation = (function () {
+    var events = [];
+
+    var parseBigFileByLines = function(file, progress, callback, onComplete) {
+        // Related: http://stackoverflow.com/questions/14438187/javascript-filereader-parsing-long-file-in-chunks
+        var fileSize = file.size;
+        var chunkSize = 64 * 1024; // why not
+        var offset = 0; // where are we currently?
+        var residualLine = "";
+        var readBlock = null;
+
+        var readEventHandler = function(e) {
+            if (e.target.error == null) {
+                offset += e.target.result.length;
+                progress.style.setProperty("width", (offset/fileSize*100).toFixed(0) + "%");
+                var lines = e.target.result.split(/\r?\n/);
+                var firstLine = residualLine + lines[0];
+                callback(firstLine);
+                lines.slice(1,-1).forEach(callback);
+                residualLine = lines[lines.length-1];
+            } else {
+                console.log("Read error: " + e.target.error);
+                return;
+            }
+            if (offset >= fileSize) {
+                callback(residualLine);
+                onComplete();
+                return;
+            }
+            readBlock(offset, chunkSize, file);
+        };
+
+        readBlock = function(_offset, length, _file) {
+            var r = new FileReader();
+            var blob = _file.slice(_offset, _offset + length);
+            r.onload = readEventHandler;
+            r.readAsText(blob);
+        };
+
+        readBlock(offset, chunkSize, file);
+    }
+
+    var runSimulation = function (e) {
+        var file = $("#sim-file").prop("files")[0];
+        var start = new Date($("#sim-start").val());
+        var end = new Date($("#sim-end").val());
+        var list = [];
+        $("#sim-loading-modal").modal('show');
+        parseBigFileByLines(file, $("#sim-load-progress")[0], function (line) {
+            var fields = line.split(/,/);
+            var date = new Date(fields[0]);
+            if (date < start || date > end) {
+                return;
+            }
+            list.push(fields);
+        }, function () {
+            $("#sim-loading-modal").modal('hide');
+            alert(list.length);
+        });
+    }
+
+    // Exports:
+    return {
+        runSimulation: runSimulation,
     };
 }());
