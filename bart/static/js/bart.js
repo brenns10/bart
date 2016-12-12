@@ -191,8 +191,11 @@ var bart_manual = (function() {
 }());
 
 var bart_simulation = (function () {
+    // scary state maintained during simulation
     var events = [];
     var currentHour = 0;
+
+    // for plots
     var fareSavings = [];
     var fareDiscounts = [];
     var fareOriginal = [];
@@ -246,6 +249,18 @@ var bart_simulation = (function () {
         "WOAK": "West Oakland",
     };
 
+    /*
+      This horror show of a function parses a very large CSV file and calls a
+      callback with each line. In particular, the callback returns true if we
+      should keep reading, or false if we should stop. No guarantee that we will
+      stop immediately after the function returns false for the first time, just
+      that we will stop eventually.
+      file - File to read
+      progress - Progress bar to update
+      callback - Function to call with each line. Should return boolean to say
+                 whether we should continue reading
+      onComplete - Called once we have terminated reading.
+     */
     var parseBigFileByLines = function(file, progress, callback, onComplete) {
         // Related: http://stackoverflow.com/questions/14438187/javascript-filereader-parsing-long-file-in-chunks
         var fileSize = file.size;
@@ -263,6 +278,7 @@ var bart_simulation = (function () {
                 var cont = callback(firstLine);
                 if (!cont) {
                     console.log("Early termination!");
+                    progress.style.setProperty("width", "100%");
                     onComplete();
                     return;
                 }
@@ -274,6 +290,7 @@ var bart_simulation = (function () {
             }
             if (offset >= fileSize) {
                 callback(residualLine);
+                progress.style.setProperty("width", "100%");
                 onComplete();
                 return;
             }
@@ -290,12 +307,15 @@ var bart_simulation = (function () {
         readBlock(offset, chunkSize, file);
     };
 
-    var updateAfterSlice = function(data) {
+    /*
+      Update statistics after an hour has been calculated successfully.
+     */
+    var updateHour = function(data) {
         fareDiscounts.push([currentHour, Number(data["discount"])]);
         fareSavings.push([currentHour, Number(data["cost_orig"]) - Number(data["cost_opt"])]);
         fareOptimal.push([currentHour, Number(data["cost_opt"])]);
         fareOriginal.push([currentHour, Number(data["cost_orig"])]);
-        console.log($.plot($("#sim-fraction"),[fareDiscounts], {
+        $.plot($("#sim-fraction"),[fareDiscounts], {
             yaxis: {
                 max: 1,
                 min: 0,
@@ -304,8 +324,8 @@ var bart_simulation = (function () {
                 min: 0,
                 max: 24,
             }
-        }));
-        console.log($.plot($("#sim-savings"),[fareSavings], {
+        });
+        $.plot($("#sim-savings"),[fareSavings], {
             yaxis: {
                 min: 0,
             },
@@ -313,8 +333,8 @@ var bart_simulation = (function () {
                 min: 0,
                 max: 24,
             }
-        }));
-        console.log($.plot($("#sim-costs"),[fareOriginal, fareOptimal], {
+        });
+        $.plot($("#sim-costs"),[fareOriginal, fareOptimal], {
             yaxis: {
                 min: 0,
             },
@@ -322,26 +342,35 @@ var bart_simulation = (function () {
                 min: 0,
                 max: 24,
             }
-        }));
-        console.log(fareDiscounts);
+        });
         currentHour += 1;
         if (currentHour < 24) {
-            handleHour();
+            submitHour();
+        } else {
+            $("#sim-results").html(
+                "<p>Simulation Complete</p>"
+            );
         }
     };
 
-    var calculate = function() {
-        console.log("calculate");
+    /*
+      Call the calculate endpoint after an hour has been submitted.
+     */
+    var calculateHour = function() {
+        console.log("Hitting calculate endpoint for hour " + currentHour);
         $("#sim-results").html(
             "<p>All travelers for hour " + currentHour + " loaded, calculating...</p>"
         );
         $.ajax({
             type: 'GET',
             url: ENDPOINT_CALCULATE,
-            dataType: 'json',
-        }).done(updateAfterSlice);
+            dataType: 'json'
+        }).done(updateHour);
     };
 
+    /*
+      Return a list of events for a given hour.
+     */
     var eventsInHour = function(hour) {
         var list = [];
         events.forEach(function(val, i) {
@@ -352,42 +381,38 @@ var bart_simulation = (function () {
         return list;
     };
 
-
-    var handleHour = function () {
-        console.log("Handle hour " + currentHour);
+    /*
+      Submit an hour's worth of simulation data to the server.
+     */
+    var submitHour = function () {
+        // Get the event objects for just this hour.
         var events = eventsInHour(currentHour);
         var remaining = events.length;
-        console.log("Handling " + remaining + " events");
+
+        // UI updates
+        console.log("For hour " + currentHour + ", submitting " + remaining + " events");
         $("#sim-results").html(
-            "<p>Sending travelers for hour " + currentHour + " to the server...</p>"
+            "<p>Sending " + remaining + " travelers for hour " + currentHour + " to the server...</p>"
         );
-        if (remaining === 0) {
-            console.log("Empty hour, moving on.")
-            calculate();
-            return;
-        }
-        events.forEach(function(event) {
-            $.ajax({
-                type: 'POST',
-                url: ENDPOINT_TRAVEL,
-                data: JSON.stringify({
-                    start: stations[event.start],
-                    end: stations[event.end],
-                    id: 'does not matter',
-                    count: event.count,
-                }),
-                contentType: 'application/json',
-                dataType: 'json',
-            }).done(function(data) {
-                remaining -= 1;
-                console.log("remaining: " + remaining);
-                if (remaining == 0) {
-                    calculate();
-                }
-            });
-        });
+
+        // Submit every rider, and once all are submitted, proceed.
+        Promise.all(events.map((event) => $.ajax({
+            type: 'POST',
+            url: ENDPOINT_TRAVEL,
+            data: JSON.stringify({
+                start: stations[event.start],
+                end: stations[event.end],
+                id: 'does not matter',
+                count: event.count
+            }),
+            contentType: 'application/json',
+            dataType: 'json'
+        }))).then(calculateHour);
     };
 
+    /*
+      Runs a full simulation on a day's worth of data.
+     */
     var runSimulation = function (e) {
         var file = $("#sim-file").prop("files")[0];
         var date = $("#sim-date").val();
@@ -405,14 +430,14 @@ var bart_simulation = (function () {
                 hour: Number(fields[1]),
                 start: fields[2],
                 end: fields[3],
-                count: Number(fields[4]),
+                count: Number(fields[4])
             });
             return true;
         }, function () {
             currentHour=0;
-            handleHour();
+            submitHour();
         });
-    }
+    };
 
     // Exports:
     return {
