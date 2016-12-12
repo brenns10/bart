@@ -260,7 +260,12 @@ var bart_simulation = (function () {
                 progress.style.setProperty("width", (offset/fileSize*100).toFixed(0) + "%");
                 var lines = e.target.result.split(/\r?\n/);
                 var firstLine = residualLine + lines[0];
-                callback(firstLine);
+                var cont = callback(firstLine);
+                if (!cont) {
+                    console.log("Early termination!");
+                    onComplete();
+                    return;
+                }
                 lines.slice(1,-1).forEach(callback);
                 residualLine = lines[lines.length-1];
             } else {
@@ -283,13 +288,13 @@ var bart_simulation = (function () {
         };
 
         readBlock(offset, chunkSize, file);
-    }
+    };
 
     var updateAfterSlice = function(data) {
         fareDiscounts.push([currentHour, Number(data["discount"])]);
         fareSavings.push([currentHour, Number(data["cost_orig"]) - Number(data["cost_opt"])]);
-        fareOptimal.push([currentHour, Number(data["cost_opt"])])
-        fareOriginal.push([currentHour, Number(data["cost_orig"])])
+        fareOptimal.push([currentHour, Number(data["cost_opt"])]);
+        fareOriginal.push([currentHour, Number(data["cost_orig"])]);
         console.log($.plot($("#sim-fraction"),[fareDiscounts], {
             yaxis: {
                 max: 1,
@@ -323,7 +328,7 @@ var bart_simulation = (function () {
         if (currentHour < 24) {
             handleHour();
         }
-    }
+    };
 
     var calculate = function() {
         console.log("calculate");
@@ -345,7 +350,7 @@ var bart_simulation = (function () {
             }
         });
         return list;
-    }
+    };
 
 
     var handleHour = function () {
@@ -356,6 +361,11 @@ var bart_simulation = (function () {
         $("#sim-results").html(
             "<p>Sending travelers for hour " + currentHour + " to the server...</p>"
         );
+        if (remaining === 0) {
+            console.log("Empty hour, moving on.")
+            calculate();
+            return;
+        }
         events.forEach(function(event) {
             $.ajax({
                 type: 'POST',
@@ -376,10 +386,19 @@ var bart_simulation = (function () {
                 }
             });
         });
-    }
+    };
+
     var runSimulation = function (e) {
         var file = $("#sim-file").prop("files")[0];
+        var date = $("#sim-date").val();
+        console.log("Simulating for date " + date);
+        var rangeFound = false;
         parseBigFileByLines(file, $("#sim-load-progress")[0], function (line) {
+            // Signal termination when we read day after.
+            if (!line.startsWith(date)) {
+                return !rangeFound;
+            }
+            rangeFound = true;
             var fields = line.split(/,/);
             events.push({
                 date: new Date(fields[0]),
@@ -388,6 +407,7 @@ var bart_simulation = (function () {
                 end: fields[3],
                 count: Number(fields[4]),
             });
+            return true;
         }, function () {
             currentHour=0;
             handleHour();

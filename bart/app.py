@@ -8,11 +8,11 @@ import uuid
 import flask
 from flask import request
 
-from bart.fares import FARES, STATIONS
-from bart.solver import BartProblem
+from bart.fares import FARES, STATIONS, FARES_DICT
+from bart.scipy_solver import BartProblem
 
 app = flask.Flask(__name__)
-solver = BartProblem(FARES, STATIONS)
+solver = BartProblem(FARES_DICT)
 tokens = {}
 
 TRAVEL_REQUIRED_ARGS = {'start', 'end', 'id'}
@@ -81,13 +81,11 @@ def travel():
     if start not in STATIONS or end not in STATIONS:
         raise BadRequestError('one or more specified station does not exist')
 
-    src_idx = STATIONS.index(start)
-    dst_idx = STATIONS.index(end)
     args['token'] = uuid.uuid4()
-    args['fare_orig'] = FARES[src_idx][dst_idx]
+    args['fare_orig'] = FARES_DICT[(start, end)]
     count = args.get('count', 1)
     for _ in range(count):
-        solver.add_traveler(src_idx, dst_idx, args)
+        solver.add_traveler(start, end, args)
 
     tokens[args['token']] = 'processing'
 
@@ -103,12 +101,12 @@ def calculate():
     global solver
     solver.solve()  # it's really that simple :P
     discount = solver.discount_rate()
-    for x in range(solver.num_stations):
+    for x in range(solver.num_stations()):
         for passenger in solver.iter_dst(x):
             passenger['fare_opt'] = passenger['fare_orig'] * discount
             tokens[passenger['token']] = passenger
     old_solver = solver
-    solver = BartProblem(FARES, STATIONS)
+    solver = BartProblem(FARES_DICT)
     return flask.jsonify(
         status="OK",
         cost_orig=old_solver.cost_orig,

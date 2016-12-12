@@ -122,3 +122,9 @@ for row in range(_num_stations):
     for col in range(row + 1, _num_stations):
         FARES[col, row] = FARES[row, col]
 STATIONS = _raw_stations
+
+# Create a "FARES_DICT" object mapping (src, dst) to fare
+FARES_DICT = {}
+for i, src in enumerate(STATIONS):
+    for j, dst in enumerate(STATIONS):
+        FARES_DICT[(src, dst)] = FARES[i, j]

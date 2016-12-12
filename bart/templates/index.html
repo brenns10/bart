@@ -6,22 +6,29 @@
             <div class="panel panel-default">
                 <div class="panel-heading">Add Traveler</div>
                 <div class="panel-body">
-                    <p>
-                        Add a travel entry to the solver:
-                    </p>
-                    <div class="form-group">
-                        <label>Start</label>
-                        <select class="form-control" id="travel-start"></select>
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <p>
+                                Add a travel entry to the solver:
+                            </p>
+                            <div class="form-group">
+                                <label>Start</label>
+                                <select class="form-control" id="travel-start"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>End</label>
+                                <select class="form-control" id="travel-end"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Name/ID</label>
+                                <input class="form-control" type="text" id="travel-name" />
+                            </div>
+                            <button type="button"  class="btn btn-primary" onclick="bart_manual.sendTravel()">Travel!</button>
+                        </div>
+                        <div class="col-lg-6">
+                            <img src="https://www.bart.gov/sites/all/themes/bart_desktop/img/system-map.gif">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>End</label>
-                        <select class="form-control" id="travel-end"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Name/ID</label>
-                        <input class="form-control" type="text" id="travel-name" />
-                    </div>
-                    <button type="button"  class="btn btn-primary" onclick="bart_manual.sendTravel()">Travel!</button>
                 </div>
             </div>
             <div class="panel panel-default">
@@ -73,6 +80,10 @@
                     <div class="form-group">
                         <label>BART Simulation CSV</label>
                         <input type="file" id="sim-file" />
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="sim-date">
                     </div>
                     <button class="btn btn-primary" onclick="bart_simulation.runSimulation()">Run!</button>
                 </div>
