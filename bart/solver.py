@@ -19,7 +19,16 @@ src_sum = row_sum
 dst_sum = col_sum
 
 
-class BartProblem(object):
+class BartScipySolver(object):
+    """
+    All solvers should provide the following interface:
+    * __init__(fares)
+    * add_traveler(start, end, data)
+    * solve()
+    * discount_rate()
+    * cost_orig, cost_opt, num_stations()
+    * iter_src(station), iter_dst(station)
+    """
 
     def __init__(self, fares):
         """
@@ -86,7 +95,7 @@ class BartProblem(object):
         :type src: str
         ;param dst: ending station name
         :type dst: str
-        :param data: traveler data dict, which must include 'ticket' and 'name'
+        :param data: traveler data dict
         :type data: dict
         """
         assert not self.res
@@ -105,9 +114,9 @@ class BartProblem(object):
         Solve the problem.
         """
         assert not self.res
-
-        # Some constants
         N = self.num_stations()
+
+        # Special case for solving empty problem.
         if not N:
             self.res = True
             self.cost_opt = 0
@@ -129,12 +138,6 @@ class BartProblem(object):
         fare_matrix = self._get_fare_matrix()
         c = fare_matrix.reshape(N ** 2)
 
-        # Diagnostics
-        import sys
-        print('A.shape = ' + str(A.shape), file=sys.stderr)
-        print('b.shape = ' + str(b.shape), file=sys.stderr)
-        print('c.shape = ' + str(c.shape), file=sys.stderr)
-
         # Solve linear program and save important attributes.
         self.res = scipy.optimize.linprog(c, A_eq=A, b_eq=b,
                                           options={'maxiter': float('inf')})
@@ -155,6 +158,7 @@ class BartProblem(object):
             for dst in range(N):
                 for _ in range(int(self.ticket_matrix[src, dst])):
                     src_rider = next(src_riders[src])
+                    print(src_rider)
                     dst_rider = next(dst_riders[dst])
                     dst_rider['exit_id'] = src_rider['id']
 

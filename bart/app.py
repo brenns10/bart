@@ -8,11 +8,11 @@ import uuid
 import flask
 from flask import request
 
-from bart.fares import FARES, STATIONS, FARES_DICT
-from bart.scipy_solver import BartProblem
+from bart.fares import STATIONS, FARES_DICT
+from bart.solver import BartScipySolver
 
 app = flask.Flask(__name__)
-solver = BartProblem(FARES_DICT)
+solver = BartScipySolver(FARES_DICT)
 tokens = {}
 
 TRAVEL_REQUIRED_ARGS = {'start', 'end', 'id'}
@@ -106,7 +106,7 @@ def calculate():
             passenger['fare_opt'] = passenger['fare_orig'] * discount
             tokens[passenger['token']] = passenger
     old_solver = solver
-    solver = BartProblem(FARES_DICT)
+    solver = BartScipySolver(FARES_DICT)
     return flask.jsonify(
         status="OK",
         cost_orig=old_solver.cost_orig,
